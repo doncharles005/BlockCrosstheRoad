@@ -33,7 +33,7 @@ const positionWidth = 42;
 const columns = 17;
 const boardWidth = positionWidth * columns;
 
-const stepTime = 200; // Miliseconds it takes for the chicken to take a step forward, backward, left or right
+const stepTime = 200;
 
 let lanes;
 let currentLane;
@@ -62,6 +62,101 @@ const truckRightSideTexture = new Texture(25, 30, [
 const truckLeftSideTexture = new Texture(25, 30, [
   { x: 0, y: 5, w: 10, h: 10 },
 ]);
+
+// ========== AUDIO SYSTEM ==========
+let audioCtx;
+let bgmInterval = null;
+let isAudioInitialized = false;
+let deathSoundPlayed = false;
+
+function initAudio() {
+    if (isAudioInitialized) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    isAudioInitialized = true;
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    startBackgroundMusic();
+}
+
+function playHopSound() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.12);
+}
+
+function playDeathSound() {
+    if (!audioCtx || deathSoundPlayed) return;
+    deathSoundPlayed = true;
+    stopBackgroundMusic();
+
+    // Descending tone
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.6);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.7);
+
+    // Noise burst
+    const bufferSize = audioCtx.sampleRate * 0.25;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+    noise.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noise.start();
+}
+
+function startBackgroundMusic() {
+    if (!audioCtx || bgmInterval) return;
+    const notes = [196.00, 246.94, 293.66, 349.23, 392.00, 349.23, 293.66, 246.94];
+    let noteIndex = 0;
+
+    bgmInterval = setInterval(() => {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(notes[noteIndex], audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.125, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.6);
+        noteIndex = (noteIndex + 1) % notes.length;
+    }, 400);
+}
+
+function stopBackgroundMusic() {
+    if (bgmInterval) {
+        clearInterval(bgmInterval);
+        bgmInterval = null;
+    }
+}
+// ========== END AUDIO SYSTEM ==========
 
 const generateLanes = () =>
   [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -103,10 +198,6 @@ dirLight.shadow.camera.right = d;
 dirLight.shadow.camera.top = d;
 dirLight.shadow.camera.bottom = -d;
 
-// var helper = new THREE.CameraHelper( dirLight.shadow.camera );
-// var helper = new THREE.CameraHelper( camera );
-// scene.add(helper)
-
 backLight = new THREE.DirectionalLight(0x000000, 0.4);
 backLight.position.set(200, 200, 50);
 backLight.castShadow = true;
@@ -137,6 +228,8 @@ const initaliseValues = () => {
 
   dirLight.position.x = initialDirLightPositionX;
   dirLight.position.y = initialDirLightPositionY;
+
+  deathSoundPlayed = false;
 };
 
 initaliseValues();
@@ -210,8 +303,8 @@ function Car() {
         flatShading: true,
         map: carLeftSideTexture,
       }),
-      new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true }), // top
-      new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true }), // bottom
+      new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true }),
+      new THREE.MeshPhongMaterial({ color: 0xcccccc, flatShading: true }),
     ]
   );
   cabin.position.x = 6 * zoom;
@@ -259,7 +352,7 @@ function Truck() {
   const cabin = new THREE.Mesh(
     new THREE.BoxBufferGeometry(25 * zoom, 30 * zoom, 30 * zoom),
     [
-      new THREE.MeshPhongMaterial({ color, flatShading: true }), // back
+      new THREE.MeshPhongMaterial({ color, flatShading: true }),
       new THREE.MeshPhongMaterial({
         color,
         flatShading: true,
@@ -275,8 +368,8 @@ function Truck() {
         flatShading: true,
         map: truckLeftSideTexture,
       }),
-      new THREE.MeshPhongMaterial({ color, flatShading: true }), // top
-      new THREE.MeshPhongMaterial({ color, flatShading: true }), // bottom
+      new THREE.MeshPhongMaterial({ color, flatShading: true }),
+      new THREE.MeshPhongMaterial({ color, flatShading: true }),
     ]
   );
   cabin.position.x = -40 * zoom;
@@ -492,6 +585,8 @@ document.querySelector("#retry").addEventListener("click", () => {
   lanes.forEach((lane) => scene.remove(lane.mesh));
   initaliseValues();
   endDOM.style.visibility = "hidden";
+  deathSoundPlayed = false;
+  startBackgroundMusic();
 });
 
 document
@@ -508,16 +603,12 @@ document.getElementById("right").addEventListener("click", () => move("right"));
 
 window.addEventListener("keydown", (event) => {
   if (event.keyCode == "38") {
-    // up arrow
     move("forward");
   } else if (event.keyCode == "40") {
-    // down arrow
     move("backward");
   } else if (event.keyCode == "37") {
-    // left arrow
     move("left");
   } else if (event.keyCode == "39") {
-    // right arrow
     move("right");
   }
 });
@@ -579,6 +670,7 @@ function move(direction) {
     if (!stepStartTimestamp) startMoving = true;
   }
   moves.push(direction);
+  playHopSound();
 }
 
 function animate(timestamp) {
@@ -588,7 +680,6 @@ function animate(timestamp) {
   const delta = timestamp - previousTimestamp;
   previousTimestamp = timestamp;
 
-  // Animate cars and trucks moving on the lane
   lanes.forEach((lane) => {
     if (lane.type === "car" || lane.type === "truck") {
       const aBitBeforeTheBeginingOfLane =
@@ -628,8 +719,7 @@ function animate(timestamp) {
           currentLane * positionWidth * zoom + moveDeltaDistance;
         camera.position.y = initialCameraPositionY + positionY;
         dirLight.position.y = initialDirLightPositionY + positionY;
-        chicken.position.y = positionY; // initial chicken position is 0
-
+        chicken.position.y = positionY;
         chicken.position.z = jumpDeltaDistance;
         break;
       }
@@ -638,7 +728,6 @@ function animate(timestamp) {
         camera.position.y = initialCameraPositionY + positionY;
         dirLight.position.y = initialDirLightPositionY + positionY;
         chicken.position.y = positionY;
-
         chicken.position.z = jumpDeltaDistance;
         break;
       }
@@ -649,7 +738,7 @@ function animate(timestamp) {
           moveDeltaDistance;
         camera.position.x = initialCameraPositionX + positionX;
         dirLight.position.x = initialDirLightPositionX + positionX;
-        chicken.position.x = positionX; // initial chicken position is 0
+        chicken.position.x = positionX;
         chicken.position.z = jumpDeltaDistance;
         break;
       }
@@ -661,12 +750,10 @@ function animate(timestamp) {
         camera.position.x = initialCameraPositionX + positionX;
         dirLight.position.x = initialDirLightPositionX + positionX;
         chicken.position.x = positionX;
-
         chicken.position.z = jumpDeltaDistance;
         break;
       }
     }
-    // Once a step has ended
     if (moveDeltaTime > stepTime) {
       switch (moves[0]) {
         case "forward": {
@@ -689,12 +776,10 @@ function animate(timestamp) {
         }
       }
       moves.shift();
-      // If more steps are to be taken then restart counter otherwise stop stepping
       stepStartTimestamp = moves.length === 0 ? null : timestamp;
     }
   }
 
-  // Hit test
   if (
     lanes[currentLane].type === "car" ||
     lanes[currentLane].type === "truck"
@@ -706,6 +791,7 @@ function animate(timestamp) {
       const carMinX = vechicle.position.x - (vechicleLength * zoom) / 2;
       const carMaxX = vechicle.position.x + (vechicleLength * zoom) / 2;
       if (chickenMaxX > carMinX && chickenMinX < carMaxX) {
+        playDeathSound();
         endDOM.style.visibility = "visible";
       }
     });
@@ -714,3 +800,7 @@ function animate(timestamp) {
 }
 
 requestAnimationFrame(animate);
+
+document.getElementById('startBtn').addEventListener('click', () => {
+    initAudio();
+});
