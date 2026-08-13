@@ -6,16 +6,60 @@
     <meta name="viewport" content="width=device-width" />
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="https://i.ibb.co/M6KTWnf/pic.jpg" />
-
-    <!-- 👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻-->
-    <!-- Also uploaded the demo of this code in a gif : https://c.tenor.com/x8v1oNUOmg4AAAAd/tenor.gif-->
-    <!-- 👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻-->
-
-    <!-- 👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻👇🏻-->
-    <!-- More html-css-js Games Calculators Games Cards Elements Projects on https://www.github.com/he-is-talha -->
-    <!-- 👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻👆🏻-->
+    <style>
+      #menu {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #1a1a2e;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        font-family: "Press Start 2P", cursive;
+      }
+      #menu h1 {
+        font-size: 1.2em;
+        margin-bottom: 50px;
+        color: #fff;
+        text-align: center;
+        line-height: 1.5;
+        text-shadow: 3px 3px 0px rgba(0,0,0,0.75);
+      }
+      #menu button {
+        margin: 15px;
+        padding: 20px 60px;
+        font-family: inherit;
+        font-size: 0.7em;
+        background-color: #e94560;
+        color: white;
+        border: none;
+        box-shadow: 3px 5px 0px 0px rgba(0, 0, 0, 0.75);
+        cursor: pointer;
+        transition: transform 0.1s;
+      }
+      #menu button:hover {
+        transform: translateY(-2px);
+      }
+      #menu button:active {
+        transform: translateY(2px);
+        box-shadow: 1px 2px 0px 0px rgba(0, 0, 0, 0.75);
+      }
+      .hidden {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
+    <div id="menu">
+      <h1>Block Cross the Road</h1>
+      <button id="startBtn">Start</button>
+      <button id="quitBtn">Quit</button>
+    </div>
+
     <div id="counter">0</div>
 
     <div id="controlls">
@@ -56,5 +100,20 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/99/three.min.js"></script>
     <script src="script.js"></script>
+    <script>
+      const menu = document.getElementById('menu');
+      const startBtn = document.getElementById('startBtn');
+      const quitBtn = document.getElementById('quitBtn');
+
+      startBtn.addEventListener('click', () => {
+        menu.classList.add('hidden');
+      });
+
+      quitBtn.addEventListener('click', () => {
+        window.close();
+        // Fallback if window.close() is blocked by the browser
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:white;font-family:Press Start 2P,cursive;"><h1>Thanks for Playing!</h1></div>';
+      });
+    </script>
   </body>
 </html>
